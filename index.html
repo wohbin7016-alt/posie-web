@@ -53,57 +53,115 @@
     .panel{position:static!important}
   }
 
-  /* Instagram profile mock */
+  /* =============================================
+     Instagram-accurate profile mock
+     Pure white, system font, official UI parts
+     ============================================= */
   .phone{
-    background:var(--card);border-radius:18px;box-shadow:var(--shadow);
-    padding:0 0 16px;overflow:hidden;
+    background:#fff;
+    border:1px solid #dbdbdb;border-radius:12px;
+    overflow:hidden;padding:0;
+    font-family:-apple-system,"Helvetica Neue","Apple SD Gothic Neo","Noto Sans KR",Arial,sans-serif;
+    color:#000;
   }
-  .phone .top{
-    padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;
+
+  /* Top navbar */
+  .ig-nav{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:8px 14px;border-bottom:1px solid #dbdbdb;
   }
-  .phone .avatar{
-    width:64px;height:64px;border-radius:50%;
-    background:linear-gradient(135deg,var(--pink),var(--cream));
-    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px;
+  .ig-nav .username{
+    display:flex;align-items:center;gap:4px;
+    font-size:18px;font-weight:700;color:#000;
+  }
+  .ig-nav .username .chev{width:12px;height:12px;stroke:#000;stroke-width:2;fill:none}
+  .ig-nav .ico-row{display:flex;gap:16px;align-items:center}
+  .ig-nav .ico-row svg{width:24px;height:24px;stroke:#000;stroke-width:1.6;fill:none;color:#000}
+
+  /* Profile header row */
+  .ig-profile{padding:16px 16px 0;display:flex;align-items:center;gap:24px}
+  .ig-avatar-ring{
+    padding:2px;border-radius:50%;
+    background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
     flex-shrink:0;
   }
-  .phone .meta h2{margin:0 0 3px;font-size:15px}
-  .phone .meta .handle{font-size:12px;color:var(--muted)}
-  .phone .bio{padding:10px 18px 12px;font-size:12px;line-height:1.6;color:#4a4340}
-  .phone .stats{display:flex;gap:18px;padding:0 18px 12px;font-size:11px;color:var(--muted)}
-  .phone .stats b{color:var(--ink)}
-  .phone .tabs{display:flex;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:11px;color:var(--muted)}
-  .phone .tabs div{flex:1;text-align:center;padding:9px 0}
-  .phone .tabs div.active{color:var(--ink);border-top:2px solid var(--ink)}
+  .ig-avatar-inner{padding:2px;background:#fff;border-radius:50%}
+  .ig-avatar{
+    width:76px;height:76px;border-radius:50%;
+    background:linear-gradient(135deg,#f5c6d0,#fff4e6);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:700;font-size:28px;
+  }
+  .ig-stats{display:flex;gap:26px;flex:1;justify-content:flex-end}
+  .ig-stats div{text-align:center;cursor:pointer}
+  .ig-stats b{display:block;font-size:16px;font-weight:700;color:#000;line-height:1.2}
+  .ig-stats span{font-size:14px;color:#000}
 
-  /* 인스타 실제 그리드 비율 (2024년 개편: 4:5 portrait) */
+  /* Name + bio block */
+  .ig-bio{padding:10px 16px 0;font-size:14px;line-height:1.35;color:#000}
+  .ig-bio .dname{font-weight:700;font-size:14px;margin-bottom:1px}
+  .ig-bio .btxt{white-space:pre-line;font-size:14px}
+  .ig-bio .link{color:#00376b;font-weight:500;display:inline-block;margin-top:2px;text-decoration:none}
+
+  /* Action buttons row (프로필 편집 / 프로필 공유 / 👤+) */
+  .ig-actions{display:flex;gap:4px;padding:12px 16px 0}
+  .ig-actions .btn-ig{
+    flex:1;padding:6px 0;border:1px solid #dbdbdb;background:#fff;border-radius:8px;
+    font-size:14px;font-weight:600;cursor:pointer;color:#000;font-family:inherit;
+  }
+  .ig-actions .btn-ig.sq{flex:0 0 36px;display:flex;align-items:center;justify-content:center}
+  .ig-actions .btn-ig.sq svg{width:16px;height:16px;stroke:#000;stroke-width:2;fill:none}
+
+  /* Highlights row */
+  .ig-hi{display:flex;gap:14px;padding:14px 16px 10px;overflow-x:auto;scrollbar-width:none}
+  .ig-hi::-webkit-scrollbar{display:none}
+  .ig-hi .hi{display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0}
+  .ig-hi .hi .ring{
+    width:64px;height:64px;border-radius:50%;
+    border:1px solid #dbdbdb;background:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:24px;color:#8e8e8e;
+  }
+  .ig-hi .hi .label{font-size:12px;color:#000;max-width:72px;text-align:center;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* Tab bar with icons */
+  .ig-tabs{display:flex;border-top:1px solid #dbdbdb}
+  .ig-tabs .tab{flex:1;display:flex;align-items:center;justify-content:center;
+    padding:10px 0;cursor:pointer;color:#8e8e8e;position:relative}
+  .ig-tabs .tab svg{width:24px;height:24px;stroke:currentColor;stroke-width:1.5;fill:none}
+  .ig-tabs .tab.active{color:#000}
+  .ig-tabs .tab.active::before{
+    content:'';position:absolute;top:-1px;left:0;right:0;height:1px;background:#000;
+  }
+
+  /* Grid — Instagram exact */
   .grid{
-    display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--line);
+    display:grid;grid-template-columns:repeat(3,1fr);gap:1.5px;background:#dbdbdb;
   }
   .cell{
-    aspect-ratio:4/5;  /* ← 인스타 실제 프로필 그리드 비율 */
-    background:#faefef;position:relative;overflow:hidden;cursor:pointer;
+    aspect-ratio:4/5;  /* Instagram 2024 profile grid */
+    background:#fafafa;position:relative;overflow:hidden;cursor:pointer;
     display:flex;align-items:center;justify-content:center;
   }
   .cell img{width:100%;height:100%;object-fit:cover;display:block}
-  .cell .placeholder{color:#d2b2ba;font-size:28px;font-weight:300}
+  .cell .placeholder{color:#c7c7c7;font-size:28px;font-weight:300}
   .cell .idx{
-    position:absolute;top:5px;left:5px;background:rgba(0,0,0,.55);color:#fff;
-    font-size:9px;padding:2px 5px;border-radius:10px;font-weight:600;letter-spacing:.3px;
+    position:absolute;top:6px;left:6px;background:rgba(0,0,0,.5);color:#fff;
+    font-size:10px;padding:2px 5px;border-radius:10px;font-weight:600;
   }
   .cell .type-tag{
-    position:absolute;top:5px;right:5px;background:rgba(0,0,0,.55);color:#fff;
-    font-size:9px;padding:2px 5px;border-radius:10px;
+    position:absolute;top:6px;right:6px;background:rgba(0,0,0,.5);color:#fff;
+    font-size:10px;padding:2px 5px;border-radius:10px;
   }
   .cell .cap-preview{
     position:absolute;bottom:0;left:0;right:0;padding:6px 7px;
-    background:linear-gradient(transparent,rgba(0,0,0,.75));
-    color:#fff;font-size:9px;line-height:1.3;
-    opacity:0;transition:opacity .2s;
+    background:linear-gradient(transparent,rgba(0,0,0,.7));
+    color:#fff;font-size:10px;line-height:1.3;
+    opacity:0;transition:opacity .15s;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   .cell:hover .cap-preview, .cell.show-cap .cap-preview{opacity:1}
-  .cell.drag-over{outline:2px dashed var(--accent);outline-offset:-2px;z-index:2}
+  .cell.drag-over{outline:2px dashed #0095f6;outline-offset:-2px;z-index:2}
   .cell.dragging{opacity:.3}
 
   /* Ratio toggle (square vs portrait) */
@@ -205,37 +263,95 @@
   </div>
   <div class="spacer"></div>
   <span class="info" id="infoBar">0/12</span>
-  <button class="btn ghost" onclick="shufflePreview()">🎲</button>
-  <button class="btn ghost" onclick="exportJson()">💾</button>
-  <button class="btn ghost" onclick="importJson()">📥</button>
+  <button class="btn primary" onclick="shareFeed()" id="shareBtn">🔗 공유</button>
+  <button class="btn ghost" onclick="shufflePreview()" title="셔플">🎲</button>
+  <button class="btn ghost" onclick="exportJson()" title="내보내기">💾</button>
+  <button class="btn ghost" onclick="importJson()" title="불러오기">📥</button>
   <button class="btn danger" onclick="resetAll()">초기화</button>
+</div>
+
+<!-- Share modal -->
+<div id="shareModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:16px;padding:20px;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="font-size:16px;font-weight:700;margin-bottom:6px">🌸 공유 링크 생성됨</div>
+    <div style="font-size:12px;color:#8a7d78;margin-bottom:12px" id="shareSubtitle">팀원에게 아래 링크를 보내면 동일한 피드를 볼 수 있어요.</div>
+    <input type="text" id="shareUrl" readonly style="width:100%;padding:10px;border:1px solid #dbdbdb;border-radius:8px;font-size:12px;margin-bottom:12px;font-family:monospace" />
+    <div style="display:flex;gap:8px">
+      <button class="btn primary" onclick="copyShareUrl()" style="flex:1">📋 링크 복사</button>
+      <button class="btn ghost" onclick="document.getElementById('shareModal').style.display='none'" style="flex:0 0 80px">닫기</button>
+    </div>
+    <div style="font-size:11px;color:#b5a79f;margin-top:10px" id="shareHint"></div>
+  </div>
 </div>
 
 <div class="wrap">
   <div class="phone">
-    <div class="top">
-      <div class="avatar">p</div>
-      <div class="meta">
-        <h2>posie</h2>
-        <div class="handle">@posie_official</div>
+    <!-- Top navbar -->
+    <div class="ig-nav">
+      <div class="username">
+        posie_official
+        <svg class="chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="ico-row">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/><rect x="2" y="2" width="20" height="20" rx="5"/></svg>
+        <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </div>
     </div>
-    <div class="bio">
-      🌸 posie · 우리가 입히고 싶은 아기 옷<br>
-      · 신상 매주 <span id="dropDay">화요일</span><br>
-      · 문의 — DM / 게시판<br>
-      posie.co.kr
+
+    <!-- Profile row -->
+    <div class="ig-profile">
+      <div class="ig-avatar-ring">
+        <div class="ig-avatar-inner">
+          <div class="ig-avatar">p</div>
+        </div>
+      </div>
+      <div class="ig-stats">
+        <div><b id="stPosts">0</b><span>게시물</span></div>
+        <div><b>0</b><span>팔로워</span></div>
+        <div><b>1</b><span>팔로우</span></div>
+      </div>
     </div>
-    <div class="stats">
-      <span><b>0</b> 게시물</span>
-      <span><b>0</b> 팔로워</span>
-      <span><b>1</b> 팔로우</span>
+
+    <!-- Bio -->
+    <div class="ig-bio">
+      <div class="dname">posie</div>
+      <div class="btxt">🌸 우리가 입히고 싶은 아기 옷
+· 신상 매주 <span id="dropDay">화요일</span>
+· 문의 — DM / 게시판</div>
+      <a class="link" href="https://posie.co.kr" target="_blank">posie.co.kr</a>
     </div>
-    <div class="tabs">
-      <div class="active">▦ 게시물</div>
-      <div>▶ 릴스</div>
-      <div>◎ 태그됨</div>
+
+    <!-- Action buttons -->
+    <div class="ig-actions">
+      <button class="btn-ig">프로필 편집</button>
+      <button class="btn-ig">프로필 공유</button>
+      <button class="btn-ig sq">
+        <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+      </button>
     </div>
+
+    <!-- Highlights -->
+    <div class="ig-hi">
+      <div class="hi"><div class="ring">+</div><div class="label">신규</div></div>
+      <div class="hi"><div class="ring">🌸</div><div class="label">4/25</div></div>
+      <div class="hi"><div class="ring">📦</div><div class="label">Shipping</div></div>
+      <div class="hi"><div class="ring">📏</div><div class="label">Size</div></div>
+      <div class="hi"><div class="ring">🧸</div><div class="label">신상</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="ig-tabs">
+      <div class="tab active">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+      </div>
+      <div class="tab">
+        <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><polygon points="10 8 16 12 10 16" fill="currentColor" stroke="none"/></svg>
+      </div>
+      <div class="tab">
+        <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+      </div>
+    </div>
+
     <div class="grid" id="grid"></div>
   </div>
 
@@ -348,6 +464,8 @@ function render(){
 
   const filled = state.slots.filter(s => s.img).length;
   document.getElementById('infoBar').textContent = `${filled}/${state.slots.length}`;
+  const sp = document.getElementById('stPosts');
+  if(sp) sp.textContent = filled;
   document.querySelectorAll('#rowsSeg button').forEach(b =>
     b.classList.toggle('on', +b.dataset.rows === state.rows));
   document.querySelectorAll('#ratioSeg button').forEach(b =>
@@ -580,7 +698,112 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
 
-render();
+/* ============================================
+   공유 기능 — jsonblob.com 익명 JSON 스토리지
+   ============================================ */
+const BLOB_API = 'https://jsonblob.com/api/jsonBlob';
+let currentBlobId = localStorage.getItem('posie-blob-id') || null;
+
+async function shareFeed(){
+  const btn = document.getElementById('shareBtn');
+  const orig = btn.innerHTML;
+  btn.innerHTML = '⏳ 업로드...';
+  btn.disabled = true;
+  try {
+    const payload = JSON.stringify(state);
+    const sizeMB = (payload.length / 1024 / 1024).toFixed(2);
+
+    let res, blobId;
+    if(currentBlobId){
+      // update existing
+      res = await fetch(`${BLOB_API}/${currentBlobId}`, {
+        method: 'PUT',
+        headers: {'Content-Type':'application/json','Accept':'application/json'},
+        body: payload
+      });
+      if(!res.ok) throw new Error(`update 실패 (HTTP ${res.status})`);
+      blobId = currentBlobId;
+    } else {
+      // create new
+      res = await fetch(BLOB_API, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','Accept':'application/json'},
+        body: payload
+      });
+      if(!res.ok) throw new Error(`POST 실패 (HTTP ${res.status})`);
+      const loc = res.headers.get('Location') || res.headers.get('location');
+      if(!loc) throw new Error('Location 헤더 없음 (CORS 문제 가능성)');
+      blobId = loc.split('/').pop();
+      currentBlobId = blobId;
+      localStorage.setItem('posie-blob-id', blobId);
+    }
+
+    const shareUrl = `${location.origin}${location.pathname}?share=${blobId}`;
+    document.getElementById('shareUrl').value = shareUrl;
+    document.getElementById('shareSubtitle').textContent =
+      currentBlobId === blobId && res.status !== 201
+        ? '✅ 기존 공유 링크 업데이트 완료! 팀원들이 새로고침하면 최신 내용이 보여요.'
+        : '🎉 새 공유 링크가 생성되었습니다. 팀원에게 보내면 같은 피드를 볼 수 있어요.';
+    document.getElementById('shareHint').textContent = `크기 ${sizeMB}MB · 30일간 미접속 시 자동 만료`;
+    document.getElementById('shareModal').style.display = 'flex';
+  } catch(err){
+    alert('공유 실패:\n' + err.message + '\n\n다시 시도하거나 💾 내보내기로 JSON 파일을 공유해 주세요.');
+  } finally {
+    btn.innerHTML = orig;
+    btn.disabled = false;
+  }
+}
+
+async function copyShareUrl(){
+  const url = document.getElementById('shareUrl').value;
+  try {
+    await navigator.clipboard.writeText(url);
+    const btn = event.target;
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✅ 복사됨';
+    setTimeout(() => btn.innerHTML = orig, 1500);
+  } catch(e) {
+    // fallback
+    document.getElementById('shareUrl').select();
+    document.execCommand('copy');
+    alert('링크가 복사되었습니다');
+  }
+}
+
+async function loadFromShare(){
+  const p = new URLSearchParams(location.search);
+  const id = p.get('share');
+  if(!id) return false;
+  try {
+    const res = await fetch(`${BLOB_API}/${id}`, {
+      headers: {'Accept':'application/json'}
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if(data.slots && Array.isArray(data.slots)){
+      state = data;
+      currentBlobId = id;
+      localStorage.setItem('posie-blob-id', id);
+      save();
+      // 공유 모드 배너 표시
+      const banner = document.createElement('div');
+      banner.style.cssText = 'background:#0095f6;color:#fff;padding:8px 14px;font-size:12px;text-align:center;position:sticky;top:0;z-index:50';
+      banner.innerHTML = `🔗 공유된 피드를 보는 중입니다 · <a style="color:#fff;text-decoration:underline;font-weight:600" href="${location.pathname}">내 피드로</a>`;
+      document.body.insertBefore(banner, document.body.firstChild);
+      return true;
+    }
+  } catch(err){
+    console.warn('공유 로드 실패:', err);
+    alert('공유 링크를 불러오지 못했습니다: ' + err.message);
+  }
+  return false;
+}
+
+// 초기화: 공유 링크가 있으면 먼저 로드 후 render
+(async () => {
+  await loadFromShare();
+  render();
+})();
 </script>
 </body>
 </html>
