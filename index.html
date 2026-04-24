@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+<title>posie · 피드 프리뷰</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#f5c6d0" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="posie" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<link rel="icon" type="image/svg+xml" href="icon.svg" />
+
+<style>
+  :root{
+    --bg:#fff7f5;
+    --card:#ffffff;
+    --ink:#2c2a29;
+    --muted:#8a7d78;
+    --pink:#f5c6d0;
+    --pink-2:#eaa6b5;
+    --accent:#d88aa0;
+    --cream:#fff4e6;
+    --line:#f0dfe3;
+    --shadow:0 6px 24px rgba(200,130,150,.12);
+    --safe-t:env(safe-area-inset-top);
+    --safe-b:env(safe-area-inset-bottom);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,"Pretendard","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+    overscroll-behavior:none;
+  }
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:calc(12px + var(--safe-t)) 20px 12px;border-bottom:1px solid var(--line);background:var(--card);
+    position:sticky;top:0;z-index:10;
+  }
+  header h1{margin:0;font-size:16px;letter-spacing:-.3px}
+  header h1 .dot{color:var(--accent)}
+  header .sub{font-size:11px;color:var(--muted);margin-top:2px}
+  header .right{font-size:11px;color:var(--muted)}
+
+  .wrap{
+    display:grid;grid-template-columns:1fr 360px;gap:18px;
+    padding:16px;max-width:1180px;margin:0 auto;
+  }
+  @media (max-width: 900px){
+    .wrap{grid-template-columns:1fr;gap:12px;padding:10px 10px calc(20px + var(--safe-b))}
+    .panel{position:static!important}
+  }
+
+  /* Instagram profile mock */
+  .phone{
+    background:var(--card);border-radius:18px;box-shadow:var(--shadow);
+    padding:0 0 16px;overflow:hidden;
+  }
+  .phone .top{
+    padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;
+  }
+  .phone .avatar{
+    width:64px;height:64px;border-radius:50%;
+    background:linear-gradient(135deg,var(--pink),var(--cream));
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px;
+    flex-shrink:0;
+  }
+  .phone .meta h2{margin:0 0 3px;font-size:15px}
+  .phone .meta .handle{font-size:12px;color:var(--muted)}
+  .phone .bio{padding:10px 18px 12px;font-size:12px;line-height:1.6;color:#4a4340}
+  .phone .stats{display:flex;gap:18px;padding:0 18px 12px;font-size:11px;color:var(--muted)}
+  .phone .stats b{color:var(--ink)}
+  .phone .tabs{display:flex;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:11px;color:var(--muted)}
+  .phone .tabs div{flex:1;text-align:center;padding:9px 0}
+  .phone .tabs div.active{color:var(--ink);border-top:2px solid var(--ink)}
+
+  /* 인스타 실제 그리드 비율 (2024년 개편: 4:5 portrait) */
+  .grid{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--line);
+  }
+  .cell{
+    aspect-ratio:4/5;  /* ← 인스타 실제 프로필 그리드 비율 */
+    background:#faefef;position:relative;overflow:hidden;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .cell img{width:100%;height:100%;object-fit:cover;display:block}
+  .cell .placeholder{color:#d2b2ba;font-size:28px;font-weight:300}
+  .cell .idx{
+    position:absolute;top:5px;left:5px;background:rgba(0,0,0,.55);color:#fff;
+    font-size:9px;padding:2px 5px;border-radius:10px;font-weight:600;letter-spacing:.3px;
+  }
+  .cell .type-tag{
+    position:absolute;top:5px;right:5px;background:rgba(0,0,0,.55);color:#fff;
+    font-size:9px;padding:2px 5px;border-radius:10px;
+  }
+  .cell .cap-preview{
+    position:absolute;bottom:0;left:0;right:0;padding:6px 7px;
+    background:linear-gradient(transparent,rgba(0,0,0,.75));
+    color:#fff;font-size:9px;line-height:1.3;
+    opacity:0;transition:opacity .2s;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .cell:hover .cap-preview, .cell.show-cap .cap-preview{opacity:1}
+  .cell.drag-over{outline:2px dashed var(--accent);outline-offset:-2px;z-index:2}
+  .cell.dragging{opacity:.3}
+
+  /* Ratio toggle (square vs portrait) */
+  .grid.square .cell{aspect-ratio:1/1}
+
+  /* Side panel */
+  .panel{
+    background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:16px;
+    display:flex;flex-direction:column;gap:12px;height:fit-content;
+    position:sticky;top:78px;
+  }
+  .panel h3{margin:0;font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+  .panel label{font-size:11px;color:var(--muted);font-weight:600}
+  .panel input[type=text], .panel textarea, .panel select{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+    font-family:inherit;font-size:13px;color:var(--ink);background:#fff;resize:vertical;
+  }
+  .panel textarea{min-height:76px}
+  .panel .row{display:flex;gap:8px}
+  .btn{
+    flex:1;padding:10px 12px;border:none;border-radius:10px;font-size:12px;
+    cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s;
+  }
+  .btn.primary{background:var(--accent);color:#fff}
+  .btn.primary:active{background:var(--pink-2)}
+  .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  .btn.ghost:active{background:var(--cream)}
+  .btn.danger{background:#fff;border:1px solid #f0c0c8;color:#c26b7b}
+
+  .slot-label{font-size:11px;color:var(--muted)}
+  .type-btns{display:flex;gap:4px;flex-wrap:wrap}
+  .type-btns button{
+    padding:6px 10px;border:1px solid var(--line);background:#fff;border-radius:18px;
+    font-size:11px;cursor:pointer;font-family:inherit;
+  }
+  .type-btns button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  .toolbar{
+    display:flex;gap:8px;margin:0 auto 12px;
+    padding:10px 14px;background:var(--card);border-radius:12px;box-shadow:var(--shadow);
+    align-items:center;flex-wrap:wrap;max-width:1180px;
+  }
+  .toolbar .seg{display:flex;background:var(--bg);border-radius:8px;padding:3px}
+  .toolbar .seg button{
+    background:transparent;border:none;padding:6px 10px;border-radius:6px;
+    font-size:11px;cursor:pointer;font-family:inherit;color:var(--muted);
+  }
+  .toolbar .seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08);font-weight:600}
+  .toolbar .spacer{flex:1}
+  .toolbar .info{font-size:11px;color:var(--muted)}
+  .toolbar .btn{flex:0 0 auto;padding:7px 12px}
+
+  .empty-hint{
+    text-align:center;padding:18px 10px;color:var(--muted);font-size:12px;
+    border:1px dashed var(--line);border-radius:10px;
+  }
+  .legend{
+    font-size:11px;color:var(--muted);line-height:1.6;
+    padding:10px;background:var(--bg);border-radius:8px;
+  }
+  .legend code{background:#f0dfe3;padding:1px 4px;border-radius:3px;color:var(--accent)}
+
+  /* PWA install prompt */
+  .install-banner{
+    display:none;position:fixed;bottom:calc(14px + var(--safe-b));left:14px;right:14px;
+    background:var(--accent);color:#fff;padding:12px 14px;border-radius:12px;
+    box-shadow:0 8px 28px rgba(200,100,130,.35);
+    z-index:100;font-size:13px;display:none;align-items:center;gap:10px;
+  }
+  .install-banner.show{display:flex}
+  .install-banner button{
+    margin-left:auto;background:#fff;color:var(--accent);border:none;
+    padding:7px 14px;border-radius:8px;font-weight:700;font-family:inherit;font-size:12px;
+  }
+  .install-banner .x{background:transparent;color:#fff;padding:4px 8px;font-size:18px;margin:0}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>posie<span class="dot">·</span> <span style="color:var(--muted);font-weight:500">피드 프리뷰</span></h1>
+    <div class="sub">인스타 실제 비율 · <a href="https://www.instagram.com/pee_bee__/" target="_blank" style="color:var(--accent);text-decoration:none">@pee_bee__</a> 벤치</div>
+  </div>
+  <div class="right">자동 저장</div>
+</header>
+
+<div class="toolbar">
+  <span class="info">행</span>
+  <div class="seg" id="rowsSeg">
+    <button data-rows="3">3줄</button>
+    <button data-rows="4" class="on">4줄</button>
+    <button data-rows="6">6줄</button>
+    <button data-rows="9">9줄</button>
+  </div>
+  <span class="info" style="margin-left:8px">비율</span>
+  <div class="seg" id="ratioSeg">
+    <button data-ratio="portrait" class="on">4:5 (현재)</button>
+    <button data-ratio="square">1:1 (구식)</button>
+  </div>
+  <div class="spacer"></div>
+  <span class="info" id="infoBar">0/12</span>
+  <button class="btn ghost" onclick="shufflePreview()">🎲</button>
+  <button class="btn ghost" onclick="exportJson()">💾</button>
+  <button class="btn ghost" onclick="importJson()">📥</button>
+  <button class="btn danger" onclick="resetAll()">초기화</button>
+</div>
+
+<div class="wrap">
+  <div class="phone">
+    <div class="top">
+      <div class="avatar">p</div>
+      <div class="meta">
+        <h2>posie</h2>
+        <div class="handle">@posie_official</div>
+      </div>
+    </div>
+    <div class="bio">
+      🌸 posie · 우리가 입히고 싶은 아기 옷<br>
+      · 신상 매주 <span id="dropDay">화요일</span><br>
+      · 문의 — DM / 게시판<br>
+      posie.co.kr
+    </div>
+    <div class="stats">
+      <span><b>0</b> 게시물</span>
+      <span><b>0</b> 팔로워</span>
+      <span><b>1</b> 팔로우</span>
+    </div>
+    <div class="tabs">
+      <div class="active">▦ 게시물</div>
+      <div>▶ 릴스</div>
+      <div>◎ 태그됨</div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="panel">
+    <h3>선택된 슬롯</h3>
+    <div id="noSel" class="empty-hint">그리드에서 셀을 탭하세요</div>
+    <div id="sel" style="display:none">
+      <div class="slot-label">슬롯 #<span id="selIdx"></span></div>
+
+      <label>이미지</label>
+      <div class="row">
+        <button class="btn primary" onclick="pickImage()">📷 선택</button>
+        <button class="btn ghost" onclick="clearImage()">지우기</button>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="onFile(event)" />
+
+      <label>콘텐츠 유형</label>
+      <div class="type-btns" id="typeBtns">
+        <button data-type="제품">제품</button>
+        <button data-type="모델">모델</button>
+        <button data-type="디테일">디테일</button>
+        <button data-type="라이프">라이프</button>
+        <button data-type="카드">카드뉴스</button>
+        <button data-type="후기">후기</button>
+        <button data-type="이벤트">이벤트</button>
+        <button data-type="브랜드">브랜드</button>
+        <button data-type="릴스">릴스</button>
+      </div>
+
+      <label>캡션 메모 <span style="color:#bbb;font-weight:400">(호버/탭)</span></label>
+      <textarea id="capInput" placeholder="예) 거즈 오버롤 / 블랙 L · 강낭 92cm 13.7kg ...♡" oninput="saveCaption()"></textarea>
+
+      <label>컬러 태그</label>
+      <input type="text" id="colorInput" placeholder="예) 오트밀, 버터, 청록" oninput="saveColor()" />
+    </div>
+
+    <h3 style="margin-top:10px">전체 설정</h3>
+    <label>신상 드롭 요일</label>
+    <select id="daySel" onchange="saveDay()">
+      <option>월요일</option><option selected>화요일</option><option>수요일</option><option>목요일</option><option>금요일</option><option>토요일</option><option>일요일</option>
+    </select>
+
+    <div class="legend">
+      <b>💡 사용법</b><br>
+      · 셀 탭 → 이미지·유형·캡션<br>
+      · 드래그(데스크탑) / 길게 탭 후 드래그(모바일)로 순서 변경<br>
+      · 피비 벤치: 코디 완성형 캡션 + <code>...♡</code> 서명<br>
+      · 인스타 그리드는 2024년부터 <code>4:5</code> 세로 비율
+    </div>
+  </div>
+</div>
+
+<div class="install-banner" id="installBanner">
+  <span>🌸 홈 화면에 앱으로 추가해서 사용하세요</span>
+  <button id="installBtn">설치</button>
+  <button class="x" onclick="document.getElementById('installBanner').classList.remove('show')">×</button>
+</div>
+
+<script>
+const KEY='posie-feed-preview-v2';
+let state = load() || defaultState();
+let selIdx = null;
+
+function defaultState(){
+  return { rows: 4, ratio:'portrait', day: '화요일',
+    slots: Array(12).fill(null).map(() => ({img:null,type:null,cap:'',color:''})) };
+}
+
+function load(){ try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}}
+function save(){ localStorage.setItem(KEY, JSON.stringify(state)) }
+
+function setRows(n){
+  state.rows = n;
+  const need = n*3;
+  while(state.slots.length < need) state.slots.push({img:null,type:null,cap:'',color:''});
+  if(state.slots.length > need) state.slots = state.slots.slice(0, need);
+  if(selIdx !== null && selIdx >= need) selIdx = null;
+  save(); render();
+}
+
+function setRatio(r){ state.ratio = r; save(); render(); }
+
+function render(){
+  const grid = document.getElementById('grid');
+  grid.className = 'grid' + (state.ratio === 'square' ? ' square' : '');
+  grid.innerHTML = '';
+  state.slots.forEach((s, i) => {
+    const c = document.createElement('div');
+    c.className = 'cell';
+    c.draggable = true;
+    c.dataset.idx = i;
+    if(s.img){
+      c.innerHTML = `<img src="${s.img}" alt="" /><div class="idx">#${i+1}</div>` +
+                    (s.type ? `<div class="type-tag">${s.type}</div>` : '') +
+                    (s.cap ? `<div class="cap-preview">${escapeHtml(s.cap)}</div>` : '');
+    } else {
+      c.innerHTML = `<div class="idx">#${i+1}</div><div class="placeholder">+</div>` +
+                    (s.type ? `<div class="type-tag">${s.type}</div>` : '');
+    }
+    c.addEventListener('click', () => selectSlot(i));
+    c.addEventListener('dragstart', onDragStart);
+    c.addEventListener('dragover', onDragOver);
+    c.addEventListener('dragleave', onDragLeave);
+    c.addEventListener('drop', onDrop);
+    c.addEventListener('dragend', onDragEnd);
+    // Touch reorder
+    attachTouchReorder(c);
+    grid.appendChild(c);
+  });
+
+  const filled = state.slots.filter(s => s.img).length;
+  document.getElementById('infoBar').textContent = `${filled}/${state.slots.length}`;
+  document.querySelectorAll('#rowsSeg button').forEach(b =>
+    b.classList.toggle('on', +b.dataset.rows === state.rows));
+  document.querySelectorAll('#ratioSeg button').forEach(b =>
+    b.classList.toggle('on', b.dataset.ratio === state.ratio));
+  document.getElementById('daySel').value = state.day;
+  document.getElementById('dropDay').textContent = state.day;
+  if(selIdx === null){
+    document.getElementById('noSel').style.display = 'block';
+    document.getElementById('sel').style.display = 'none';
+  } else {
+    document.getElementById('noSel').style.display = 'none';
+    document.getElementById('sel').style.display = 'block';
+    document.getElementById('selIdx').textContent = (selIdx+1);
+    const s = state.slots[selIdx];
+    document.getElementById('capInput').value = s.cap || '';
+    document.getElementById('colorInput').value = s.color || '';
+    document.querySelectorAll('#typeBtns button').forEach(b =>
+      b.classList.toggle('on', b.dataset.type === s.type));
+  }
+}
+
+function escapeHtml(str){ return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+
+function selectSlot(i){ selIdx = i; render();
+  // Scroll side panel into view on mobile
+  if(window.innerWidth < 900) document.querySelector('.panel')?.scrollIntoView({behavior:'smooth', block:'start'});
+}
+function pickImage(){ document.getElementById('fileInput').click(); }
+function onFile(ev){
+  const f = ev.target.files[0];
+  if(!f || selIdx === null) return;
+  // Resize to keep localStorage small
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 900;
+      const r = Math.min(1, max/Math.max(img.width, img.height));
+      const w = Math.round(img.width*r), h = Math.round(img.height*r);
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      state.slots[selIdx].img = cv.toDataURL('image/jpeg', 0.82);
+      save(); render();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(f);
+  ev.target.value = '';
+}
+function clearImage(){
+  if(selIdx === null) return;
+  state.slots[selIdx].img = null;
+  save(); render();
+}
+function saveCaption(){
+  if(selIdx === null) return;
+  state.slots[selIdx].cap = document.getElementById('capInput').value;
+  save();
+  const cell = document.querySelector(`.cell[data-idx="${selIdx}"]`);
+  if(cell){
+    let cp = cell.querySelector('.cap-preview');
+    if(state.slots[selIdx].cap){
+      if(!cp){ cp = document.createElement('div'); cp.className = 'cap-preview'; cell.appendChild(cp); }
+      cp.textContent = state.slots[selIdx].cap;
+    } else if(cp){ cp.remove(); }
+  }
+}
+function saveColor(){
+  if(selIdx === null) return;
+  state.slots[selIdx].color = document.getElementById('colorInput').value;
+  save();
+}
+function saveDay(){
+  state.day = document.getElementById('daySel').value;
+  save();
+  document.getElementById('dropDay').textContent = state.day;
+}
+
+document.getElementById('typeBtns').addEventListener('click', e => {
+  if(e.target.tagName !== 'BUTTON' || selIdx === null) return;
+  const t = e.target.dataset.type;
+  state.slots[selIdx].type = (state.slots[selIdx].type === t) ? null : t;
+  save(); render();
+});
+document.getElementById('rowsSeg').addEventListener('click', e => {
+  if(e.target.tagName !== 'BUTTON') return;
+  setRows(+e.target.dataset.rows);
+});
+document.getElementById('ratioSeg').addEventListener('click', e => {
+  if(e.target.tagName !== 'BUTTON') return;
+  setRatio(e.target.dataset.ratio);
+});
+
+let dragIdx = null;
+function onDragStart(e){
+  dragIdx = +e.currentTarget.dataset.idx;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onDragOver(e){ e.preventDefault(); e.currentTarget.classList.add('drag-over'); e.dataTransfer.dropEffect = 'move'; }
+function onDragLeave(e){ e.currentTarget.classList.remove('drag-over'); }
+function onDrop(e){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const to = +e.currentTarget.dataset.idx;
+  if(dragIdx === null || to === dragIdx) return;
+  const moved = state.slots.splice(dragIdx, 1)[0];
+  state.slots.splice(to, 0, moved);
+  if(selIdx === dragIdx) selIdx = to;
+  dragIdx = null;
+  save(); render();
+}
+function onDragEnd(e){ e.currentTarget.classList.remove('dragging'); dragIdx = null; }
+
+// Touch-based drag (long-press → drag)
+function attachTouchReorder(cell){
+  let timer, startX, startY, active = false;
+  cell.addEventListener('touchstart', e => {
+    const t = e.touches[0]; startX = t.clientX; startY = t.clientY;
+    timer = setTimeout(() => {
+      active = true;
+      dragIdx = +cell.dataset.idx;
+      cell.classList.add('dragging');
+      if(navigator.vibrate) navigator.vibrate(30);
+    }, 350);
+  }, {passive:true});
+  cell.addEventListener('touchmove', e => {
+    if(!active){
+      const t = e.touches[0];
+      if(Math.abs(t.clientX-startX)>6 || Math.abs(t.clientY-startY)>6) clearTimeout(timer);
+      return;
+    }
+    e.preventDefault();
+    const t = e.touches[0];
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    document.querySelectorAll('.cell.drag-over').forEach(x => x.classList.remove('drag-over'));
+    if(el && el.closest('.cell')) el.closest('.cell').classList.add('drag-over');
+  }, {passive:false});
+  cell.addEventListener('touchend', e => {
+    clearTimeout(timer);
+    if(!active){ return; }
+    active = false;
+    cell.classList.remove('dragging');
+    const t = e.changedTouches[0];
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    const target = el && el.closest('.cell');
+    document.querySelectorAll('.cell.drag-over').forEach(x => x.classList.remove('drag-over'));
+    if(target && dragIdx !== null){
+      const to = +target.dataset.idx;
+      if(to !== dragIdx){
+        const moved = state.slots.splice(dragIdx, 1)[0];
+        state.slots.splice(to, 0, moved);
+        if(selIdx === dragIdx) selIdx = to;
+        save(); render();
+      }
+    }
+    dragIdx = null;
+  });
+  cell.addEventListener('touchcancel', () => { clearTimeout(timer); active = false; dragIdx = null; cell.classList.remove('dragging'); });
+}
+
+function shufflePreview(){
+  for(let i = state.slots.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [state.slots[i], state.slots[j]] = [state.slots[j], state.slots[i]];
+  }
+  save(); render();
+}
+function exportJson(){
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `posie-feed-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importJson(){
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'application/json';
+  inp.onchange = e => {
+    const f = e.target.files[0]; if(!f) return;
+    const r = new FileReader();
+    r.onload = ev => {
+      try{
+        const data = JSON.parse(ev.target.result);
+        if(data.slots && Array.isArray(data.slots)){
+          state = data; save(); render();
+        }
+      }catch(err){ alert('파일 형식 오류'); }
+    };
+    r.readAsText(f);
+  };
+  inp.click();
+}
+function resetAll(){
+  if(!confirm('정말 모두 지울까요?')) return;
+  state = defaultState(); selIdx = null; save(); render();
+}
+
+// PWA install prompt (Chrome/Android)
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const b = document.getElementById('installBanner');
+  if(!localStorage.getItem('posie-install-dismissed')) b.classList.add('show');
+  document.getElementById('installBtn').onclick = async () => {
+    b.classList.remove('show');
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+  };
+});
+// iOS: show custom hint since iOS has no beforeinstallprompt
+(function(){
+  const ua = navigator.userAgent;
+  const isIOS = /iPhone|iPad|iPod/.test(ua);
+  const standalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+  if(isIOS && !standalone && !localStorage.getItem('posie-install-dismissed')){
+    const b = document.getElementById('installBanner');
+    b.innerHTML = '<span>🌸 공유 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><path d="M12 2v14M5 9l7-7 7 7M5 20h14"/></svg> → 홈 화면에 추가</span><button class="x" onclick="localStorage.setItem(\'posie-install-dismissed\',\'1\');document.getElementById(\'installBanner\').classList.remove(\'show\')">×</button>';
+    b.classList.add('show');
+  }
+})();
+
+// Service worker
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+render();
+</script>
+</body>
+</html>
