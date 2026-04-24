@@ -700,54 +700,134 @@ if('serviceWorker' in navigator){
 
 /* ============================================
    공유 기능 — jsonblob.com 익명 JSON 스토리지
+   - SW 우회, 이미지 재압축 (400px, 0.6), 상세 에러
    ============================================ */
 const BLOB_API = 'https://jsonblob.com/api/jsonBlob';
 let currentBlobId = localStorage.getItem('posie-blob-id') || null;
 
+// 공유용 이미지 재압축 (400px · JPEG 0.6)
+function recompressForShare(dataUrl){
+  return new Promise((resolve) => {
+    if(!dataUrl || !dataUrl.startsWith('data:')) { resolve(dataUrl); return; }
+    const img = new Image();
+    img.onload = () => {
+      const max = 400;
+      const r = Math.min(1, max/Math.max(img.width, img.height));
+      const w = Math.round(img.width*r), h = Math.round(img.height*r);
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(cv.toDataURL('image/jpeg', 0.6));
+    };
+    img.onerror = () => resolve(null);
+    img.src = dataUrl;
+  });
+}
+
+async function compressStateForShare(s){
+  const compressed = {rows: s.rows, ratio: s.ratio, day: s.day, slots: []};
+  for(const slot of s.slots){
+    const newSlot = {type: slot.type, cap: slot.cap, color: slot.color, img: null};
+    if(slot.img){
+      try { newSlot.img = await recompressForShare(slot.img); }
+      catch(e){ newSlot.img = null; }
+    }
+    compressed.slots.push(newSlot);
+  }
+  return compressed;
+}
+
 async function shareFeed(){
   const btn = document.getElementById('shareBtn');
   const orig = btn.innerHTML;
-  btn.innerHTML = '⏳ 업로드...';
+  btn.innerHTML = '⏳ 압축중...';
   btn.disabled = true;
   try {
-    const payload = JSON.stringify(state);
-    const sizeMB = (payload.length / 1024 / 1024).toFixed(2);
+    // 1. 이미지 재압축
+    const shareState = await compressStateForShare(state);
+    btn.innerHTML = '⏳ 업로드...';
+    const payload = JSON.stringify(shareState);
+    const sizeKB = Math.round(payload.length / 1024);
 
+    // 2. 크기 체크 (jsonblob 1MB 제한)
+    if(payload.length > 950 * 1024){
+      throw new Error(`데이터 크기 ${sizeKB}KB > 950KB 한계. 이미지 개수를 줄여주세요.`);
+    }
+
+    // 3. SW 임시 해제 (POST 간섭 방지)
+    if(navigator.serviceWorker && navigator.serviceWorker.getRegistrations){
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister().catch(()=>{})));
+      } catch(e) { /* 무시 */ }
+    }
+
+    // 4. POST/PUT
     let res, blobId;
+    const fetchOpts = {
+      headers: {'Content-Type':'application/json','Accept':'application/json'},
+      body: payload,
+      cache: 'no-store',
+      mode: 'cors',
+      credentials: 'omit'
+    };
     if(currentBlobId){
-      // update existing
-      res = await fetch(`${BLOB_API}/${currentBlobId}`, {
-        method: 'PUT',
-        headers: {'Content-Type':'application/json','Accept':'application/json'},
-        body: payload
-      });
-      if(!res.ok) throw new Error(`update 실패 (HTTP ${res.status})`);
-      blobId = currentBlobId;
-    } else {
-      // create new
-      res = await fetch(BLOB_API, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json','Accept':'application/json'},
-        body: payload
-      });
-      if(!res.ok) throw new Error(`POST 실패 (HTTP ${res.status})`);
-      const loc = res.headers.get('Location') || res.headers.get('location');
-      if(!loc) throw new Error('Location 헤더 없음 (CORS 문제 가능성)');
-      blobId = loc.split('/').pop();
+      res = await fetch(`${BLOB_API}/${currentBlobId}`, {...fetchOpts, method:'PUT'});
+      if(!res.ok){
+        if(res.status === 404){ currentBlobId = null; localStorage.removeItem('posie-blob-id'); }
+        else throw new Error(`PUT 실패 HTTP ${res.status} — ${await res.text().catch(()=>'')}`);
+      } else {
+        blobId = currentBlobId;
+      }
+    }
+    if(!blobId){
+      res = await fetch(BLOB_API, {...fetchOpts, method:'POST'});
+      if(!res.ok){
+        const body = await res.text().catch(()=>'(본문 없음)');
+        throw new Error(`POST 실패 HTTP ${res.status}\n${body.slice(0,200)}`);
+      }
+      // 여러 방법으로 ID 추출
+      blobId = res.headers.get('X-jsonblob-id')
+            || res.headers.get('x-jsonblob-id')
+            || (res.headers.get('Location') || '').split('/').filter(Boolean).pop()
+            || (res.headers.get('location') || '').split('/').filter(Boolean).pop();
+      if(!blobId){
+        throw new Error('응답에 Blob ID 없음\nheaders: ' + [...res.headers.entries()].map(([k,v])=>`${k}:${v}`).join(', '));
+      }
       currentBlobId = blobId;
       localStorage.setItem('posie-blob-id', blobId);
     }
 
+    // 5. URL 생성 + 모달 표시
     const shareUrl = `${location.origin}${location.pathname}?share=${blobId}`;
     document.getElementById('shareUrl').value = shareUrl;
     document.getElementById('shareSubtitle').textContent =
-      currentBlobId === blobId && res.status !== 201
+      res.status === 200 && currentBlobId
         ? '✅ 기존 공유 링크 업데이트 완료! 팀원들이 새로고침하면 최신 내용이 보여요.'
         : '🎉 새 공유 링크가 생성되었습니다. 팀원에게 보내면 같은 피드를 볼 수 있어요.';
-    document.getElementById('shareHint').textContent = `크기 ${sizeMB}MB · 30일간 미접속 시 자동 만료`;
+    document.getElementById('shareHint').textContent =
+      `크기 ${sizeKB}KB · 30일간 미접속 시 자동 만료`;
     document.getElementById('shareModal').style.display = 'flex';
+
+    // 6. SW 재등록 (다음 방문부터 오프라인 작동)
+    setTimeout(() => {
+      if('serviceWorker' in navigator){
+        navigator.serviceWorker.register('sw.js').catch(()=>{});
+      }
+    }, 1000);
+
   } catch(err){
-    alert('공유 실패:\n' + err.message + '\n\n다시 시도하거나 💾 내보내기로 JSON 파일을 공유해 주세요.');
+    console.error('[공유 실패]', err);
+    const msg = (err && err.message) ? err.message : String(err);
+    // 상세 에러 모달
+    const m = document.getElementById('shareModal');
+    document.getElementById('shareUrl').value = '';
+    document.getElementById('shareSubtitle').textContent = '❌ 공유 실패';
+    document.getElementById('shareHint').innerHTML =
+      '<div style="white-space:pre-wrap;font-family:monospace;font-size:10px;background:#fee;padding:8px;border-radius:6px;color:#c00;max-height:200px;overflow:auto">' +
+      msg.replace(/</g,'&lt;') +
+      '</div><div style="margin-top:8px;color:#8a7d78">💾 내보내기(JSON 파일)로 대체하거나 스크린샷 보내주세요 🌸</div>';
+    m.style.display = 'flex';
   } finally {
     btn.innerHTML = orig;
     btn.disabled = false;
